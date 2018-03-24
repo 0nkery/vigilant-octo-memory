@@ -5,8 +5,8 @@ defmodule TwitterFeed.Model.Tweet do
 
   use Ecto.Schema
 
-  schema :tweets do
+  schema "tweets" do
     field(:data, :map)
-    belongs_to(:twitter_account, TwitterFeed.Model.Account)
+    belongs_to(:twitter_account, TwitterFeed.Model.TwitterAccount)
   end
 end
