@@ -1,0 +1,18 @@
+version: '3'
+
+volumes:
+  db:
+
+services:
+  db:
+    image: postgres:10
+    volumes:
+      - 'db:/var/lib/postgresql/data'
+    environment:
+      POSTGRES_PASSWORD: pass
+
+  app:
+    build: .
+    depends_on:
+      - db
+    working_dir: /app
