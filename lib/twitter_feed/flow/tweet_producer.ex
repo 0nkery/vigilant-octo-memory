@@ -14,11 +14,11 @@ defmodule TwitterFeed.Flow.TweetProducer do
 
   use GenStage
 
-  def start_link() do
-    GenStage.start_link(__MODULE__, :ok)
+  def start_link(arg) do
+    GenStage.start_link(__MODULE__, arg)
   end
 
-  def init(:ok) do
+  def init(_arg) do
     queue = :queue.new()
 
     accounts = TwitterAccount.all()
