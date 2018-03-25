@@ -14,14 +14,14 @@ defmodule TwitterFeed.Flow.TweetConsumer do
       %{
         id: TwitterFeed.TweetHandler,
         start: {TwitterFeed.TweetHandler, :start_link, []},
-        restart: :transient,
+        restart: :transient
       }
     ]
 
     opts = [
       strategy: :one_for_one,
       subscribe_to: [
-        TwitterFeed.TweetProducer,
+        TwitterFeed.TweetProducer
       ]
     ]
 

@@ -10,7 +10,7 @@ defmodule TwitterFeed.Flow.TweetProducer do
   Streams Tweets from Twitter accounts listed in database.
   """
 
-  alias TwitterFeed.Model.TwitterAccount
+  alias TwitterFeed.Model.{TwitterAccount, Tweet}
   alias TwitterFeed.TwitterClient
   alias TwitterFeed.Flow.TweetProducerState
 
@@ -69,36 +69,60 @@ defmodule TwitterFeed.Flow.TweetProducer do
 
     new_tweets_before =
       Task.Supervisor.async(TwitterFeed.TaskSupervisor, fn ->
-        get_tweets_before_first(account, first.id)
+        get_tweets_before_first(account, first)
       end)
 
     new_tweets_after =
       Task.Supervisor.async(TwitterFeed.TaskSupervisor, fn ->
-        get_tweets_after_latest(account, latest.id)
+        get_tweets_after_latest(account, latest)
       end)
 
-    Task.await(new_tweets_before) ++ Task.await(new_tweets_after)
+    Task.await(new_tweets_before, :infinity) ++ Task.await(new_tweets_after, :infinity)
   end
 
-  @spec get_tweets_before_first(TwitterAccount, Integer.t()) :: list(map())
-  defp get_tweets_before_first(account, first_id) do
-    tweets = TwitterClient.timeline_before(account.id, first_id)
+  @spec get_tweets_before_first(TwitterAccount, Tweet | Integer.t() | nil | map()) :: list(map())
+  defp get_tweets_before_first(account, %Tweet{id: id}) do
+    get_tweets_before_first(account, id)
+  end
+
+  defp get_tweets_before_first(account, nil) do
+    get_tweets_before_first(account, nil)
+  end
+
+  defp get_tweets_before_first(account, %{"id" => id}) do
+    get_tweets_before_first(account, id)
+  end
+
+  defp get_tweets_before_first(account, id) do
+    {:ok, tweets} = TwitterClient.timeline_before(account.id, id)
 
     if Enum.count(tweets) == 0 do
       tweets
     else
-      tweets ++ get_tweets_before_first(account, List.last(tweets).id)
+      tweets ++ get_tweets_before_first(account, List.last(tweets))
     end
   end
 
-  @spec get_tweets_after_latest(TwitterAccount, Integer.t()) :: list(map())
-  defp get_tweets_after_latest(account, latest_id) do
-    tweets = TwitterClient.timeline_after(account.id, latest_id)
+  @spec get_tweets_after_latest(TwitterAccount, Tweet | Integer.t() | nil | map()) :: list(map())
+  defp get_tweets_after_latest(account, %Tweet{id: id}) do
+    get_tweets_after_latest(account, id)
+  end
+
+  defp get_tweets_after_latest(account, nil) do
+    get_tweets_after_latest(account, nil)
+  end
+
+  defp get_tweets_after_latest(account, %{"id" => id}) do
+    get_tweets_after_latest(account, id)
+  end
+
+  defp get_tweets_after_latest(account, id) do
+    {:ok, tweets} = TwitterClient.timeline_after(account.id, id)
 
     if Enum.count(tweets) == 0 do
       tweets
     else
-      tweets ++ get_tweets_after_latest(account, List.first(tweets).id)
+      tweets ++ get_tweets_after_latest(account, List.first(tweets))
     end
   end
 end

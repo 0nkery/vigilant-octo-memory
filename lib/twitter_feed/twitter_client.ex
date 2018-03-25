@@ -17,8 +17,11 @@ defmodule TwitterFeed.TwitterClient do
   Returns a collection of most recent Tweets posted by the user
   with the given `user_id` since Tweet with `since_id`.
   """
-  @spec timeline_after(Integer.t(), Integer.t()) ::
+  @spec timeline_after(Integer.t(), Integer.t() | nil) ::
           {:ok, list(map())} | {:error, HTTPoison.Error.t()}
+  def timeline_after(user_id, since_id) when is_nil(since_id) do
+    timeline(user_id)
+  end
   def timeline_after(user_id, since_id) do
     timeline(user_id, since_id: since_id)
   end
@@ -29,6 +32,9 @@ defmodule TwitterFeed.TwitterClient do
   """
   @spec timeline_before(Integer.t(), Integer.t()) ::
           {:ok, list(map())} | {:error, HTTPoison.Error.t()}
+  def timeline_before(user_id, max_id) when is_nil(max_id) do
+    timeline(user_id)
+  end
   def timeline_before(user_id, max_id) do
     timeline(user_id, max_id: max_id)
   end
@@ -39,10 +45,11 @@ defmodule TwitterFeed.TwitterClient do
   #  In case of an erroneous response from Twitter client will `sleep_before_retry`.
   @spec timeline(Integer.t(), Keyword.t(), Integer.t()) ::
           {:ok, list(map())} | {:error, HTTPoison.Error.t()}
-  defp timeline(user_id, options, sleep_before_retry \\ @initial_sleep) do
-    url =
-      "/statuses/user_timeline.json?" <> URI.encode_query(%{user_id: user_id, count: @max_timeline_entries}) |> Enum.into(options)
+  def timeline(user_id, options \\ [], sleep_before_retry \\ @initial_sleep) do
+    options = Map.new(options)
+    query = Map.merge(options, %{user_id: user_id, count: @max_timeline_entries})
 
+    url = "/statuses/user_timeline.json?" <> URI.encode_query(query)
     response = get(url)
 
     case response do
@@ -70,11 +77,12 @@ defmodule TwitterFeed.TwitterClient do
   @spec stream(list(integer())) :: {:ok, Enumerable.t()} | {:error, HTTPoison.Error.t()}
   def stream(user_ids) do
     user_ids = Enum.join(user_ids, ",")
+
     url =
       "https://stream.twitter.com/1.1/statuses/filter.json?" <>
         URI.encode_query(%{
           delimited: "length",
-          follow: user_ids,
+          follow: user_ids
         })
 
     stage(:post, url)
