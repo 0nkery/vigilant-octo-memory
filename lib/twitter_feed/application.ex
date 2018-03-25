@@ -7,10 +7,16 @@ defmodule TwitterFeed.Application do
     # List all child processes to be supervised
     children = [
       TwitterFeed.Repo,
-      {Task.Supervisor, name: TwitterFeed.TaskSupervisor}
+      {Task.Supervisor, name: TwitterFeed.TaskSupervisor},
+      TwitterFeed.Flow.TweetProducer,
+      TwitterFeed.Flow.TweetConsumer
     ]
 
-    opts = [strategy: :one_for_one, name: TwitterFeed.Supervisor]
+    opts = [
+      strategy: :one_for_one,
+      name: TwitterFeed.Supervisor
+    ]
+
     Supervisor.start_link(children, opts)
   end
 end
