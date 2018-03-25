@@ -8,37 +8,9 @@ defmodule TwitterFeed.Model.Tweet do
 
   use Ecto.Schema
 
-  import Ecto.Query, only: [from: 2]
-
   schema "tweets" do
     field(:data, :map)
     belongs_to(:twitter_account, TwitterAccount)
-  end
-
-  @spec latest_for_account(TwitterAccount) :: Tweet
-  def latest_for_account(account) do
-    q =
-      from(
-        x in Tweet,
-        where: x.twitter_account_id == ^account.id,
-        order_by: [desc: x.id],
-        limit: 1
-      )
-
-    Repo.one(q)
-  end
-
-  @spec first_for_account(TwitterAccount) :: Tweet
-  def first_for_account(account) do
-    q =
-      from(
-        x in Tweet,
-        where: x.twitter_account_id == ^account.id,
-        order_by: [x.id],
-        limit: 1
-      )
-
-    Repo.one(q)
   end
 
   @spec upsert!(map()) :: Tweet

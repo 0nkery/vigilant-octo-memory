@@ -40,15 +40,10 @@ defmodule TwitterFeed.TwitterClient do
   @spec timeline(Integer.t(), Keyword.t(), Integer.t()) ::
           {:ok, list(map())} | {:error, HTTPoison.Error.t()}
   defp timeline(user_id, options, sleep_before_retry \\ @initial_sleep) do
-    response =
-      get(
-        ("/statuses/user_timeline.json?" <>
-           URI.encode_query(%{
-             user_id: user_id,
-             count: @max_timeline_entries
-           }))
-        |> Enum.into(options)
-      )
+    url =
+      "/statuses/user_timeline.json?" <> URI.encode_query(%{user_id: user_id, count: @max_timeline_entries}) |> Enum.into(options)
+
+    response = get(url)
 
     case response do
       {:ok, %HTTPoison.Response{status_code: status_code}} when status_code in [420, 503] ->
@@ -74,9 +69,13 @@ defmodule TwitterFeed.TwitterClient do
   """
   @spec stream(list(integer())) :: {:ok, Enumerable.t()} | {:error, HTTPoison.Error.t()}
   def stream(user_ids) do
+    user_ids = Enum.join(user_ids, ",")
     url =
       "https://stream.twitter.com/1.1/statuses/filter.json?" <>
-        URI.encode_query(%{delimited: "length"} |> Enum.into(user_ids))
+        URI.encode_query(%{
+          delimited: "length",
+          follow: user_ids,
+        })
 
     stage(:post, url)
   end

@@ -23,7 +23,7 @@ defmodule TwitterFeed.MixProject do
     [
       {:ecto, "~> 2.0"},
       {:postgrex, "~> 0.11"},
-      {:twittex, "~> 0.3"}
+      {:twittex, git: "https://github.com/0nkery/twittex.git"}
     ]
   end
 

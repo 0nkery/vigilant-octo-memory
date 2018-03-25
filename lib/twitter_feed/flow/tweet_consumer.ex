@@ -11,13 +11,17 @@ defmodule TwitterFeed.Flow.TweetConsumer do
 
   def init(_arg) do
     children = [
-      %{id: TwitterFeed.TweetHandler, start: {TwitterFeed.TweetHandler, :start_link, []}}
+      %{
+        id: TwitterFeed.TweetHandler,
+        start: {TwitterFeed.TweetHandler, :start_link, []},
+        restart: :transient,
+      }
     ]
 
     opts = [
       strategy: :one_for_one,
       subscribe_to: [
-        {TwitterFeed.Flow.TweetProducer}
+        TwitterFeed.TweetProducer,
       ]
     ]
 

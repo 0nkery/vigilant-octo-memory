@@ -1,3 +1,5 @@
+require Logger
+
 defmodule TwitterFeed.Flow.TweetProducerState do
   @enforce_keys [:queue]
   defstruct [:queue, pending_demand: 0]
@@ -8,14 +10,14 @@ defmodule TwitterFeed.Flow.TweetProducer do
   Streams Tweets from Twitter accounts listed in database.
   """
 
-  alias TwitterFeed.Model.{TwitterAccount, Tweet}
+  alias TwitterFeed.Model.TwitterAccount
   alias TwitterFeed.TwitterClient
   alias TwitterFeed.Flow.TweetProducerState
 
   use GenStage
 
-  def start_link(arg) do
-    GenStage.start_link(__MODULE__, arg)
+  def start_link(options) do
+    GenStage.start_link(__MODULE__, :ok, options)
   end
 
   def init(_arg) do
@@ -30,13 +32,11 @@ defmodule TwitterFeed.Flow.TweetProducer do
       |> Enum.flat_map(fn tweets -> tweets end)
       |> Enum.reduce(queue, fn tweet, queue -> :queue.in(tweet, queue) end)
 
-    tweet_stream =
+    {:ok, tweet_stream} =
       Enum.map(accounts, fn account -> account.id end)
       |> TwitterClient.stream()
 
-    {:ok, _tag} = GenStage.sync_subscribe(self(), to: tweet_stream)
-
-    {:producer_consumer, %TweetProducerState{queue: queue}}
+    {:producer_consumer, %TweetProducerState{queue: queue}, subscribe_to: [tweet_stream]}
   end
 
   def handle_events(tweets, _from, %TweetProducerState{queue: queue} = state) do
@@ -64,8 +64,8 @@ defmodule TwitterFeed.Flow.TweetProducer do
 
   @spec save_tweets_from_timeline(TwitterAccount) :: list(map())
   defp save_tweets_from_timeline(account) do
-    first = Tweet.first_for_account(account)
-    latest = Tweet.latest_for_account(account)
+    first = TwitterAccount.first_tweet(account)
+    latest = TwitterAccount.latest_tweet(account)
 
     new_tweets_before =
       Task.Supervisor.async(TwitterFeed.TaskSupervisor, fn ->

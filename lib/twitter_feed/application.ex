@@ -8,7 +8,8 @@ defmodule TwitterFeed.Application do
     children = [
       TwitterFeed.Repo,
       {Task.Supervisor, name: TwitterFeed.TaskSupervisor},
-      TwitterFeed.Flow.TweetProducer,
+      TwitterFeed.TwitterClient.child_spec(),
+      {TwitterFeed.Flow.TweetProducer, name: TwitterFeed.TweetProducer},
       TwitterFeed.Flow.TweetConsumer
     ]
 
