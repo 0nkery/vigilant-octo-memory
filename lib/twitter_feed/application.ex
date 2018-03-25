@@ -7,7 +7,7 @@ defmodule TwitterFeed.Application do
     # List all child processes to be supervised
     children = [
       TwitterFeed.Repo,
-      {TaskSupervisor, name: TwitterFeed.TaskSupervisor}
+      {Task.Supervisor, name: TwitterFeed.TaskSupervisor}
     ]
 
     opts = [strategy: :one_for_one, name: TwitterFeed.Supervisor]
