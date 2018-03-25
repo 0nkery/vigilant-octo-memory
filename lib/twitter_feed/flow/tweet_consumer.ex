@@ -15,8 +15,10 @@ defmodule TwitterFeed.Flow.TweetConsumer do
     ]
 
     opts = [
-      strategy: :one_for_one
-      # TODO: subscribe_to
+      strategy: :one_for_one,
+      subscribe_to: [
+        {TwitterFeed.Flow.TweetProducer}
+      ]
     ]
 
     ConsumerSupervisor.init(children, opts)
