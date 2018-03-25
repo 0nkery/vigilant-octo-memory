@@ -6,7 +6,8 @@ defmodule TwitterFeed.Application do
   def start(_type, _args) do
     # List all child processes to be supervised
     children = [
-      TwitterFeed.Repo
+      TwitterFeed.Repo,
+      {TaskSupervisor, name: TwitterFeed.TaskSupervisor}
     ]
 
     opts = [strategy: :one_for_one, name: TwitterFeed.Supervisor]
