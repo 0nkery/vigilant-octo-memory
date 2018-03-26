@@ -13,14 +13,16 @@ defmodule TwitterFeed.Model.Tweet do
     belongs_to(:twitter_account, TwitterAccount)
   end
 
-  @spec upsert!(map()) :: Tweet
-  def upsert!(tweet_map) do
-    tweet = %Tweet{
-      id: tweet_map.id,
-      data: tweet_map,
-      twitter_account_id: tweet_map.user.id
-    }
+  @spec upsert_many!(list(map())) :: Integer.t()
+  def upsert_many!(tweets) do
+    tweets = Enum.map(tweets, fn tweet ->
+      %Tweet{
+        id: tweet_map["id"],
+        data: tweet_map,
+        twitter_account_id: tweet_map["user"]["id"]
+      }
+    end)
 
-    Repo.insert!(tweet, on_conflict: :replace_all, conflicting_target: :id)
+    Repo.insert_all(Tweet, tweets, on_conflict: :replace_all, conflicting_target: :id)
   end
 end
