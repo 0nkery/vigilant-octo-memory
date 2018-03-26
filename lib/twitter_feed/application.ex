@@ -9,8 +9,14 @@ defmodule TwitterFeed.Application do
       TwitterFeed.Repo,
       {Task.Supervisor, name: TwitterFeed.TaskSupervisor},
       TwitterFeed.TwitterClient.child_spec(),
-      {DynamicSupervisor, name: TwitterFeed.ProducerSupervisor, strategy: :one_for_one},
-      {DynamicSupervisor, name: TwitterFeed.ConsumerSupervisor, strategy: :one_for_one},
+      Supervisor.child_spec(
+        {DynamicSupervisor, name: TwitterFeed.ProducerSupervisor, strategy: :one_for_one},
+        id: :producer_supervisor
+      ),
+      Supervisor.child_spec(
+        {DynamicSupervisor, name: TwitterFeed.ConsumerSupervisor, strategy: :one_for_one},
+        id: :consumer_supervisor
+      ),
       TwitterFeed.Flow.Coordinator
     ]
 

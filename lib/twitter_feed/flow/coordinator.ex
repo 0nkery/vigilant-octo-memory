@@ -10,7 +10,7 @@ defmodule TwitterFeed.Flow.Coordinator do
   use GenServer
 
   alias TwitterFeed.Model.TwitterAccount
-  alias TwitterFeed.Flow.{CoordinatorState, TweetConsumer}
+  alias TwitterFeed.Flow.CoordinatorState
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, :ok, opts)
@@ -25,18 +25,19 @@ defmodule TwitterFeed.Flow.Coordinator do
       Enum.map(0..consumer_count, fn _idx ->
         {:ok, consumer} =
           DynamicSupervisor.start_child(
-            TwitterFeed.ConsumerProducer,
+            TwitterFeed.ConsumerSupervisor,
             TwitterFeed.Flow.TweetConsumer
           )
 
         consumer
       end)
 
-    GenServer.cast(self(), :update)
+    Process.send_after(self(), :update, 1)
+
     {:ok, %CoordinatorState{consumers: consumers}}
   end
 
-  def handle_cast(:update, state) do
+  def handle_info(:update, state) do
     new_accounts = TwitterAccount.all()
 
     Enum.each(new_accounts, fn account ->
@@ -58,7 +59,7 @@ defmodule TwitterFeed.Flow.Coordinator do
 
   defp notify_consumers_about_producer(consumers, producer) do
     Enum.each(consumers, fn consumer ->
-      TweetConsumer.subscribe_to(consumer, producer)
+      {:ok, _tag} = GenStage.sync_subscribe(consumer, to: producer, cancel: :transient)
     end)
   end
 end

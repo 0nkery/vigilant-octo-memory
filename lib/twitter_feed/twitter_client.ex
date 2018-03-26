@@ -10,63 +10,29 @@ defmodule TwitterFeed.TwitterClient do
 
   use Twittex.Client.Base, pool: true
 
-  @initial_sleep 1000
   @max_timeline_entries 200
 
   @doc """
-  Returns a collection of most recent Tweets posted by the user
-  with the given `user_id` since Tweet with `since_id`.
+  Returns a collection of the Tweets posted by the user
+  with the given `user_id` with given `options`.
   """
-  @spec timeline_after(Integer.t(), Integer.t() | nil) ::
+  @spec timeline(Integer.t(), Keyword.t()) ::
           {:ok, list(map())} | {:error, HTTPoison.Error.t()}
-  def timeline_after(user_id, since_id) when is_nil(since_id) do
-    timeline(user_id)
-  end
-
-  def timeline_after(user_id, since_id) do
-    timeline(user_id, since_id: since_id)
-  end
-
-  @doc """
-  Returns a collection of Tweets posted by the user with the given `user_id`
-  before Tweet with `max_id`.
-  """
-  @spec timeline_before(Integer.t(), Integer.t()) ::
-          {:ok, list(map())} | {:error, HTTPoison.Error.t()}
-  def timeline_before(user_id, max_id) when is_nil(max_id) do
-    timeline(user_id)
-  end
-
-  def timeline_before(user_id, max_id) do
-    timeline(user_id, max_id: max_id)
-  end
-
-  #  Returns a collection of the Tweets posted by the user
-  #  with the given `user_id` with given `options`.
-  #
-  #  In case of an erroneous response from Twitter client will `sleep_before_retry`.
-  @spec timeline(Integer.t(), Keyword.t(), Integer.t()) ::
-          {:ok, list(map())} | {:error, HTTPoison.Error.t()}
-  def timeline(user_id, options \\ [], sleep_before_retry \\ @initial_sleep) do
+  def timeline(user_id, options \\ []) do
     options = Map.new(options)
-    query = Map.merge(options, %{user_id: user_id, count: @max_timeline_entries})
+    query = Map.merge(options, %{user_id: user_id, count: @max_timeline_entries, include_rts: 1})
 
     url = "/statuses/user_timeline.json?" <> URI.encode_query(query)
     response = get(url)
 
     case response do
       {:ok, %HTTPoison.Response{status_code: status_code}} when status_code in [420, 503] ->
-        Logger.error(
-          "Got #{status_code} response from Twitter. Retrying in #{sleep_before_retry} ms"
-        )
-
-        :timer.sleep(sleep_before_retry)
-        timeline(user_id, options, 2 * sleep_before_retry)
+        Logger.error("Got #{status_code} response from Twitter")
+        {:error, :service_unavailable}
 
       {:ok, %HTTPoison.Response{status_code: status_code}} when status_code > 200 ->
         Logger.error("Got #{status_code} response from Twitter")
-        :timer.sleep(sleep_before_retry)
-        response
+        {:error, :bad_request}
 
       anything_else ->
         anything_else
