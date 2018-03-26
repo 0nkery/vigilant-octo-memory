@@ -36,7 +36,7 @@ defmodule TwitterFeed.Flow.TweetProducer do
   end
 
   def init(account) do
-    Logger.info("Handling tweets for account #{account.id}")
+    Logger.info("Handling tweets for #{inspect(account)}")
 
     state = %TweetProducerState{
       queue: :queue.new(),
@@ -48,7 +48,7 @@ defmodule TwitterFeed.Flow.TweetProducer do
 
   def handle_info(:fetch_tweets, state) do
     state = fetch_tweets(state)
-    Logger.debug("State for #{self()} after fetching tweets - #{state}")
+    Logger.debug("State for #{inspect(self())} after fetching tweets - #{inspect(state)}")
     {:noreply, state}
   end
 
@@ -60,7 +60,7 @@ defmodule TwitterFeed.Flow.TweetProducer do
   def handle_demand(incoming_demand, state) do
     demand = incoming_demand + state.pending_demand
 
-    Logger.info("Demand for #{self()} - #{demand}")
+    Logger.info("Demand for #{inspect(self())} - #{demand}")
 
     if demand > 2 * :queue.len(state.queue) do
       Process.send_after(self(), :fetch_tweets, state.retry_after)
@@ -88,7 +88,7 @@ defmodule TwitterFeed.Flow.TweetProducer do
   defp fetch_tweets(
          %TweetProducerState{oldest: :stop, newest: :stop, subscribed_to_stream: false} = state
        ) do
-    Logger.info("Switching to Twitter Stream API for #{state.account}")
+    Logger.info("Switching to Twitter Stream API for #{inspect(state.account)}")
 
     {:ok, tweet_stream} = TwitterClient.stream([state.account.id])
     {:ok, _tag} = GenStage.sync_subscribe(tweet_stream, cancel: :transient)
@@ -128,44 +128,46 @@ defmodule TwitterFeed.Flow.TweetProducer do
   end
 
   defp fetch_tweets(%TweetProducerState{oldest: oldest, newest: newest} = state)
-    when is_integer(oldest) and is_integer(newest) do
+       when is_integer(oldest) and is_integer(newest) do
     oldest_response = TwitterClient.timeline(state.account.id, max_id: oldest)
-    state = case oldest_response do
-      {:ok, []} ->
-        %{state | oldest: :stop}
 
-      {:ok, tweets} ->
-        queue =
-          Enum.reduce(tweets, state.queue, fn tweet, queue -> :queue.in(tweet, queue) end)
+    state =
+      case oldest_response do
+        {:ok, []} ->
+          %{state | oldest: :stop}
 
-        %{
-          state
-        | queue: queue,
-          oldest: List.last(tweets)["id"],
-        }
+        {:ok, tweets} ->
+          queue = Enum.reduce(tweets, state.queue, fn tweet, queue -> :queue.in(tweet, queue) end)
 
-      {:error, :service_unavailable} ->
-        TweetProducerState.update_retry_after(state)
-    end
+          %{
+            state
+            | queue: queue,
+              oldest: List.last(tweets)["id"]
+          }
+
+        {:error, :service_unavailable} ->
+          TweetProducerState.update_retry_after(state)
+      end
 
     newest_response = TwitterClient.timeline(state.account.id, since_id: newest)
-    state = case newest_response do
-      {:ok, []} ->
-        %{state | newest: :stop}
 
-      {:ok, tweets} ->
-        queue =
-          Enum.reduce(tweets, state.queue, fn tweet, queue -> :queue.in(tweet, queue) end)
+    state =
+      case newest_response do
+        {:ok, []} ->
+          %{state | newest: :stop}
 
-        %{
-          state
-        | queue: queue,
-          oldest: List.first(tweets)["id"],
-        }
+        {:ok, tweets} ->
+          queue = Enum.reduce(tweets, state.queue, fn tweet, queue -> :queue.in(tweet, queue) end)
 
-      {:error, :service_unavailable} ->
-        TweetProducerState.update_retry_after(state)
-    end
+          %{
+            state
+            | queue: queue,
+              oldest: List.first(tweets)["id"]
+          }
+
+        {:error, :service_unavailable} ->
+          TweetProducerState.update_retry_after(state)
+      end
 
     state
   end

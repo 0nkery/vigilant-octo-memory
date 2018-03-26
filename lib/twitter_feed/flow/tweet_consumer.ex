@@ -18,13 +18,12 @@ defmodule TwitterFeed.Flow.TweetConsumer do
   end
 
   def handle_subscribe(:producer, options, _from, state) do
-    Logger.info("Subsribing #{self()} to with #{options}")
+    Logger.info("Subscribing #{inspect(self())} with #{inspect(options)}")
     {:automatic, state}
   end
 
   def handle_events(tweets, _from, state) do
     Tweet.upsert_many!(tweets)
-
     {:noreply, [], state}
   end
 end

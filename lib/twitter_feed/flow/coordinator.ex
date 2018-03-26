@@ -12,6 +12,8 @@ defmodule TwitterFeed.Flow.Coordinator do
   alias TwitterFeed.Model.TwitterAccount
   alias TwitterFeed.Flow.CoordinatorState
 
+  @default_consumer_count 10
+
   def start_link(opts) do
     GenServer.start_link(__MODULE__, :ok, opts)
   end
@@ -19,7 +21,7 @@ defmodule TwitterFeed.Flow.Coordinator do
   def init(_opts) do
     consumer_count =
       Application.get_env(:twitter_feed, TwitterFeed.Repo)
-      |> Keyword.get(:pool_size, 10)
+      |> Keyword.get(:pool_size, @default_consumer_count)
 
     consumers =
       Enum.map(0..consumer_count, fn _idx ->

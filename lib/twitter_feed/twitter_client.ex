@@ -16,8 +16,7 @@ defmodule TwitterFeed.TwitterClient do
   Returns a collection of the Tweets posted by the user
   with the given `user_id` with given `options`.
   """
-  @spec timeline(Integer.t(), Keyword.t()) ::
-          {:ok, list(map())} | {:error, HTTPoison.Error.t()}
+  @spec timeline(Integer.t(), Keyword.t()) :: {:ok, list(map())} | {:error, HTTPoison.Error.t()}
   def timeline(user_id, options \\ []) do
     options = Map.new(options)
     query = Map.merge(options, %{user_id: user_id, count: @max_timeline_entries, include_rts: 1})
