@@ -44,7 +44,7 @@ defmodule TwitterFeed.Flow.Coordinator do
         {:ok, producer} =
           DynamicSupervisor.start_child(
             TwitterFeed.ProducerSupervisor,
-            TwitterFeed.Flow.TweetProducer
+            {TwitterFeed.Flow.TweetProducer, [account]}
           )
 
         notify_consumers_about_producer(state.consumers, producer)
