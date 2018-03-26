@@ -17,9 +17,9 @@ defmodule TwitterFeed.Model.Tweet do
   def upsert_many!(tweets) do
     tweets = Enum.map(tweets, fn tweet ->
       %Tweet{
-        id: tweet_map["id"],
-        data: tweet_map,
-        twitter_account_id: tweet_map["user"]["id"]
+        id: tweet["id"],
+        data: tweet,
+        twitter_account_id: tweet["user"]["id"]
       }
     end)
 
