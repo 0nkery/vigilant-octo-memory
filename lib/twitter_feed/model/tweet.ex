@@ -15,13 +15,14 @@ defmodule TwitterFeed.Model.Tweet do
 
   @spec upsert_many!(list(map())) :: Integer.t()
   def upsert_many!(tweets) do
-    tweets = Enum.map(tweets, fn tweet ->
-      %Tweet{
-        id: tweet["id"],
-        data: tweet,
-        twitter_account_id: tweet["user"]["id"]
-      }
-    end)
+    tweets =
+      Enum.map(tweets, fn tweet ->
+        %Tweet{
+          id: tweet["id"],
+          data: tweet,
+          twitter_account_id: tweet["user"]["id"]
+        }
+      end)
 
     Repo.insert_all(Tweet, tweets, on_conflict: :replace_all, conflicting_target: :id)
   end

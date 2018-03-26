@@ -22,6 +22,7 @@ defmodule TwitterFeed.TwitterClient do
   def timeline_after(user_id, since_id) when is_nil(since_id) do
     timeline(user_id)
   end
+
   def timeline_after(user_id, since_id) do
     timeline(user_id, since_id: since_id)
   end
@@ -35,6 +36,7 @@ defmodule TwitterFeed.TwitterClient do
   def timeline_before(user_id, max_id) when is_nil(max_id) do
     timeline(user_id)
   end
+
   def timeline_before(user_id, max_id) do
     timeline(user_id, max_id: max_id)
   end
