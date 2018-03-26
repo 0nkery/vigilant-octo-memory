@@ -8,8 +8,9 @@ defmodule TwitterFeed.Model.TwitterAccount do
 
   use Ecto.Schema
 
+  import Ecto.Query
+
   schema "twitter_accounts" do
-    has_many(:tweets, Tweet)
   end
 
   @spec all() :: list(TwitterAccount)
@@ -19,14 +20,14 @@ defmodule TwitterFeed.Model.TwitterAccount do
 
   @spec latest_tweet(TwitterAccount) :: Tweet
   def latest_tweet(account) do
-    Ecto.assoc(account, :tweets)
+    from(t in Tweet, where: t.twitter_account_id == ^account.id)
     |> Ecto.Query.last()
     |> Repo.one()
   end
 
   @spec first_tweet(TwitterAccount) :: Tweet
   def first_tweet(account) do
-    Ecto.assoc(account, :tweets)
+    from(t in Tweet, where: t.twitter_account_id == ^account.id)
     |> Ecto.Query.first()
     |> Repo.one()
   end

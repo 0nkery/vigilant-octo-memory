@@ -4,7 +4,7 @@ defmodule TwitterFeed.Repo.Migrations.CreateTweet do
   def change do
     create table(:tweets) do
       add :data, :map
-      add :twitter_account_id, references(:twitter_accounts)
+      add :twitter_account_id, :bigint
     end
   end
 end

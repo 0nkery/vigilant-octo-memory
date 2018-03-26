@@ -22,16 +22,26 @@ defmodule TwitterFeed.TwitterClient do
     query = Map.merge(options, %{user_id: user_id, count: @max_timeline_entries, include_rts: 1})
 
     url = "/statuses/user_timeline.json?" <> URI.encode_query(query)
-    response = get(url)
+
+    response =
+      Task.Supervisor.async(TwitterFeed.TaskSupervisor, fn ->
+        try do
+          get(url)
+        catch
+          :exit, {:timeout, _} ->
+            {:error, :timeout}
+        end
+      end)
+      |> Task.await()
 
     case response do
       {:ok, %HTTPoison.Response{status_code: status_code}} when status_code in [420, 503] ->
         Logger.error("Got #{status_code} response from Twitter")
         {:error, :service_unavailable}
 
-      {:ok, %HTTPoison.Response{status_code: status_code}} when status_code > 200 ->
+      {:ok, %HTTPoison.Response{status_code: status_code} = response} when status_code > 200 ->
         Logger.error("Got #{status_code} response from Twitter")
-        {:error, :bad_request}
+        {:error, response}
 
       anything_else ->
         anything_else
