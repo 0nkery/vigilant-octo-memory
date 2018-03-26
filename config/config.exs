@@ -5,6 +5,7 @@ config :twitter_feed, TwitterFeed.Repo,
   database: "twitter_feed_repo",
   username: "postgres",
   password: "pass",
-  hostname: "db"
+  hostname: "db",
+  pool_size: 8
 
 config :twitter_feed, ecto_repos: [TwitterFeed.Repo]
