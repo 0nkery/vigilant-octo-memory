@@ -23,6 +23,8 @@ defmodule TwitterFeed.TwitterClient do
 
     url = "/statuses/user_timeline.json?" <> URI.encode_query(query)
 
+    # Running request in separate task to handle random
+    # timeouts from Twittex.Client.base call
     response =
       Task.Supervisor.async(TwitterFeed.TaskSupervisor, fn ->
         try do

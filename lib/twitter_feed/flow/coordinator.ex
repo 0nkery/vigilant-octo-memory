@@ -48,12 +48,15 @@ defmodule TwitterFeed.Flow.Coordinator do
         consumer
       end)
 
-    schedule_update(1)
+    schedule_update()
 
     {:ok, %CoordinatorState{consumers: consumers}}
   end
 
   def handle_call({:producer_stopping, account}, _from, state) do
+    # Scheduling stream start only once after some timeout
+    # to avoid connection churn if there are too many calls
+    # during small time window
     if !is_nil(state.start_stream_timer) do
       Process.cancel_timer(state.start_stream_timer)
     end
@@ -68,6 +71,7 @@ defmodule TwitterFeed.Flow.Coordinator do
      }}
   end
 
+  # Look for new accounts in database and start pipeline for them
   def handle_info(:update, state) do
     new_accounts = TwitterAccount.all()
 
@@ -79,7 +83,7 @@ defmodule TwitterFeed.Flow.Coordinator do
             {TwitterFeed.Flow.TweetTimelineProducer, [account, self()]}
           )
 
-        notify_consumers_about_producer(state.consumers, producer, cancel: :transient)
+        subscribe(state.consumers, producer, cancel: :transient)
       end
     end)
 
@@ -92,6 +96,7 @@ defmodule TwitterFeed.Flow.Coordinator do
     {:noreply, start_stream(state)}
   end
 
+  # Monitoring stream - if it dies we start new one
   def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
     state =
       cond do
@@ -106,15 +111,18 @@ defmodule TwitterFeed.Flow.Coordinator do
     {:noreply, state}
   end
 
-  defp schedule_update(after_ms) do
-    Process.send_after(self(), :update, after_ms)
+  defp schedule_update(after_ms \\ nil) do
+    case after_ms  do
+      nil -> send(self(), :update)
+      after_ms -> Process.send_after(self(), :update, after_ms)
+    end
   end
 
   defp schedule_start_stream(after_ms) do
     Process.send_after(self(), :start_stream, after_ms)
   end
 
-  defp notify_consumers_about_producer(consumers, producer, opts) do
+  defp subscribe(consumers, producer, opts) do
     opts = Keyword.put(opts, :to, producer)
 
     Enum.each(consumers, fn consumer ->
@@ -131,7 +139,9 @@ defmodule TwitterFeed.Flow.Coordinator do
     {:ok, stream} = @twitter_client_impl.stream(stream_account_ids)
     ref = Process.monitor(stream)
 
-    notify_consumers_about_producer(state.consumers, stream, cancel: :temporary)
+    # Using :temporary because tweet stream is not very reliable
+    # and can be restarted many times during application lifetime
+    subscribe(state.consumers, stream, cancel: :temporary)
 
     %{state | previous_stream: stream, start_stream_timer: nil, stream_ref: ref}
   end

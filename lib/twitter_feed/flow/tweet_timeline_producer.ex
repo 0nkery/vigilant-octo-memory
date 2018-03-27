@@ -39,7 +39,7 @@ end
 
 defmodule TwitterFeed.Flow.TweetTimelineProducer do
   @moduledoc """
-  Streams Tweets from given Twitter account.
+  Streams timeline Tweets from given Twitter account.
   """
 
   alias TwitterFeed.Model.TwitterAccount
@@ -94,6 +94,8 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
     end
   end
 
+  # Stop this producer if all timeline tweets has been forwarded to consumers
+  # and coordinator knows about it
   defp fetch_tweets(%TweetTimelineProducerState{going_to_stop: true} = state) do
     if :queue.len(state.queue) == 0 do
       GenStage.stop(self())
@@ -102,6 +104,8 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
     state
   end
 
+  # Notifies coordinator that we are out of timeline tweets and
+  # we are going to stop stage soon
   defp fetch_tweets(
          %TweetTimelineProducerState{oldest: :stop, newest: :stop, going_to_stop: false} = state
        ) do

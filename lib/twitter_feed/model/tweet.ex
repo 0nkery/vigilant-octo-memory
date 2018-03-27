@@ -15,6 +15,9 @@ defmodule TwitterFeed.Model.Tweet do
     field(:twitter_account_id, :integer)
   end
 
+  @doc """
+  Upserts many "raw" tweets into db.
+  """
   @spec upsert_many!(list(map())) :: Integer.t()
   def upsert_many!(tweets) do
     tweets =
