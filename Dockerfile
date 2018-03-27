@@ -3,8 +3,6 @@ FROM elixir
 RUN mix local.hex --force
 RUN mix local.rebar --force
 
-ENV MIX_ENV=prod
-
 COPY mix.exs mix.lock /app/
 COPY config /app/config
 WORKDIR /app
