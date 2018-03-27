@@ -28,8 +28,13 @@ defmodule TwitterFeed.Flow.Coordinator do
     GenServer.start_link(__MODULE__, :ok, opts)
   end
 
-  def notify_producer_stopping(coordinator, account) do
-    GenServer.call(coordinator, {:producer_stopping, account})
+  @doc """
+  Notifies coordinator that timeline for given account has been drained.
+  Coordinator will try to start stream after some time.
+  """
+  @spec notify_timeline_drained(GenStage.stage(), TwitterAccount) :: :ok
+  def notify_timeline_drained(coordinator, account) do
+    GenServer.call(coordinator, {:timeline_drained, account})
   end
 
   def init(_opts) do
@@ -53,7 +58,7 @@ defmodule TwitterFeed.Flow.Coordinator do
     {:ok, %CoordinatorState{consumers: consumers}}
   end
 
-  def handle_call({:producer_stopping, account}, _from, state) do
+  def handle_call({:timeline_drained, account}, _from, state) do
     # Scheduling stream start only once after some timeout
     # to avoid connection churn if there are too many calls
     # during small time window
@@ -96,7 +101,7 @@ defmodule TwitterFeed.Flow.Coordinator do
     {:noreply, start_stream(state)}
   end
 
-  # Monitoring stream - if it dies we start new one
+  # Monitoring stream - if it dies we start new one.
   def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
     state =
       cond do
@@ -111,6 +116,7 @@ defmodule TwitterFeed.Flow.Coordinator do
     {:noreply, state}
   end
 
+  @spec schedule_update(Integer.t() | nil) :: reference() | term()
   defp schedule_update(after_ms \\ nil) do
     case after_ms  do
       nil -> send(self(), :update)
@@ -118,10 +124,13 @@ defmodule TwitterFeed.Flow.Coordinator do
     end
   end
 
+  @spec schedule_start_stream(Integer.t()) :: reference()
   defp schedule_start_stream(after_ms) do
     Process.send_after(self(), :start_stream, after_ms)
   end
 
+  # Given consumers are subscribed to given producer with passed opts.
+  @spec subscribe(list(TwitterFeed.Flow.TweetConsumer), GenStage.stage(), Keyword.t()) :: :ok
   defp subscribe(consumers, producer, opts) do
     opts = Keyword.put(opts, :to, producer)
 
@@ -130,6 +139,9 @@ defmodule TwitterFeed.Flow.Coordinator do
     end)
   end
 
+  # Starts Twitter Streaming API stream stopping previous stream to
+  # avoid connection churn. So, there (almost) always exists one instance
+  # of such a stream.
   defp start_stream(state) do
     if !is_nil(state.previous_stream) do
       GenStage.stop(state.previous_stream)

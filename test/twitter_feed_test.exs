@@ -50,7 +50,7 @@ defmodule TwitterFeedTest do
 
   test "coordinator starts stream after producer is going to stop", context do
     :ok =
-      TwitterFeed.Flow.Coordinator.notify_producer_stopping(
+      TwitterFeed.Flow.Coordinator.notify_timeline_drained(
         context.coordinator,
         Fixture.one_more_twitter_account()
       )

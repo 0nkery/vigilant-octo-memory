@@ -14,10 +14,14 @@ defmodule TwitterFeed.Flow.TweetTimelineProducerState do
     oldest: :start,
     newest: :start,
     retry_after: 0,
-    going_to_stop: false,
+    timeline_drained: false,
     pending_demand: 0
   ]
 
+  @doc """
+  Updates retry timeout. Timeout is capped and increases faster
+  in interval 0..CAP/2 than in interval CAP/2..CAP.
+  """
   def update_retry_after(state) do
     retry_after = state.retry_after + @retry_step
 
@@ -96,7 +100,7 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
 
   # Stop this producer if all timeline tweets has been forwarded to consumers
   # and coordinator knows about it
-  defp fetch_tweets(%TweetTimelineProducerState{going_to_stop: true} = state) do
+  defp fetch_tweets(%TweetTimelineProducerState{timeline_drained: true} = state) do
     if :queue.len(state.queue) == 0 do
       GenStage.stop(self())
     end
@@ -107,13 +111,13 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
   # Notifies coordinator that we are out of timeline tweets and
   # we are going to stop stage soon
   defp fetch_tweets(
-         %TweetTimelineProducerState{oldest: :stop, newest: :stop, going_to_stop: false} = state
+         %TweetTimelineProducerState{oldest: :stop, newest: :stop, timeline_drained: false} = state
        ) do
     Logger.info("Switching to Twitter Stream API for #{inspect(state.account)}")
 
-    :ok = TwitterFeed.Flow.Coordinator.notify_producer_stopping(state.coordinator, state.account)
+    :ok = TwitterFeed.Flow.Coordinator.notify_timeline_drained(state.coordinator, state.account)
 
-    %{state | going_to_stop: true}
+    %{state | timeline_drained: true}
   end
 
   defp fetch_tweets(%TweetTimelineProducerState{oldest: :start, newest: :start} = state) do
