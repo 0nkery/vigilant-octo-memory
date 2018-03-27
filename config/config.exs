@@ -9,3 +9,5 @@ config :twitter_feed, TwitterFeed.Repo,
   pool_size: 8
 
 config :twitter_feed, ecto_repos: [TwitterFeed.Repo]
+
+import_config "#{Mix.env()}.exs"
