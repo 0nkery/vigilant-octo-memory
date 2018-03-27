@@ -17,7 +17,7 @@ defmodule TwitterFeed.Application do
         {DynamicSupervisor, name: TwitterFeed.ConsumerSupervisor, strategy: :one_for_one},
         id: :consumer_supervisor
       ),
-      TwitterFeed.Flow.Coordinator
+      {TwitterFeed.Flow.Coordinator, name: TwitterFeed.Coordinator}
     ]
 
     opts = [

@@ -38,7 +38,7 @@ defmodule TwitterFeed.Flow.Coordinator do
       |> Keyword.get(:pool_size, @default_consumer_count)
 
     consumers =
-      Enum.map(0..consumer_count, fn _idx ->
+      Enum.map(1..consumer_count, fn _idx ->
         {:ok, consumer} =
           DynamicSupervisor.start_child(
             TwitterFeed.ConsumerSupervisor,

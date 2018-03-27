@@ -26,6 +26,6 @@ defmodule TwitterFeed.Model.Tweet do
         }
       end)
 
-    Repo.insert_all(Tweet, tweets)
+    Repo.insert_all(Tweet, tweets, on_conflict: :replace_all, conflict_target: :id)
   end
 end

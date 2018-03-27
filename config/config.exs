@@ -9,14 +9,13 @@ config :twitter_feed, TwitterFeed.Repo,
   pool_size: 8
 
 config :twitter_feed,
-       ecto_repos: [TwitterFeed.Repo],
-       twitter_client: TwitterFeed.TwitterClient,
-       coordinator: TwitterFeed.Flow.Coordinator
+  ecto_repos: [TwitterFeed.Repo],
+  twitter_client: TwitterFeed.TwitterClient
 
 config :twittex,
-       consumer_key: System.get_env("TWITTER_CONSUMER_KEY"),
-       consumer_secret: System.get_env("TWITTER_CONSUMER_SECRET"),
-       token: System.get_env("TWITTER_OWNER_TOKEN"),
-       token_secret: System.get_env("TWITTER_OWNER_TOKEN_SECRET")
+  consumer_key: System.get_env("TWITTER_CONSUMER_KEY"),
+  consumer_secret: System.get_env("TWITTER_CONSUMER_SECRET"),
+  token: System.get_env("TWITTER_OWNER_TOKEN"),
+  token_secret: System.get_env("TWITTER_OWNER_TOKEN_SECRET")
 
 import_config "#{Mix.env()}.exs"

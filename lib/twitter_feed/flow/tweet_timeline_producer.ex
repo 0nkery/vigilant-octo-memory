@@ -20,12 +20,15 @@ defmodule TwitterFeed.Flow.TweetTimelineProducerState do
 
   def update_retry_after(state) do
     retry_after = state.retry_after + @retry_step
+
     retry_after =
       cond do
         retry_after < @max_retry_after / 2 ->
           retry_after * @starting_retry_coefficient
+
         retry_after > @max_retry_after ->
           @max_retry_after
+
         true ->
           retry_after * @finish_retry_coefficient
       end
@@ -45,7 +48,6 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
   use GenStage
 
   @twitter_client_impl Application.fetch_env!(:twitter_feed, :twitter_client)
-  @coordinator_impl Application.fetch_env!(:twitter_feed, :coordinator)
 
   def start_link([account, coordinator]) do
     GenStage.start_link(__MODULE__, {account, coordinator})
@@ -105,7 +107,7 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
        ) do
     Logger.info("Switching to Twitter Stream API for #{inspect(state.account)}")
 
-    :ok = @coordinator_impl.notify_producer_stopping(state.coordinator, state.account)
+    :ok = TwitterFeed.Flow.Coordinator.notify_producer_stopping(state.coordinator, state.account)
 
     %{state | going_to_stop: true}
   end
