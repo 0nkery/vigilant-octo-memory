@@ -40,10 +40,12 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
   """
 
   alias TwitterFeed.Model.TwitterAccount
-  alias TwitterFeed.TwitterClient
   alias TwitterFeed.Flow.TweetTimelineProducerState
 
   use GenStage
+
+  @twitter_client_impl Application.fetch_env!(:twitter_feed, :twitter_client)
+  @coordinator_impl Application.fetch_env!(:twitter_feed, :coordinator)
 
   def start_link([account, coordinator]) do
     GenStage.start_link(__MODULE__, {account, coordinator})
@@ -103,7 +105,7 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
        ) do
     Logger.info("Switching to Twitter Stream API for #{inspect(state.account)}")
 
-    :ok = TwitterFeed.Flow.Coordinator.notify_producer_stopping(state.coordinator, state.account)
+    :ok = @coordinator_impl.notify_producer_stopping(state.coordinator, state.account)
 
     %{state | going_to_stop: true}
   end
@@ -113,7 +115,7 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
     latest_tweet = TwitterAccount.latest_tweet(state.account)
 
     with {nil, nil} <- {first_tweet, latest_tweet},
-         {:ok, [first | _rest] = tweets} <- TwitterClient.timeline(state.account.id) do
+         {:ok, [first | _rest] = tweets} <- @twitter_client_impl.timeline(state.account.id) do
       queue = Enum.reduce(tweets, state.queue, fn tweet, queue -> :queue.in(tweet, queue) end)
 
       %{
@@ -145,7 +147,7 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
     state =
       with oldest when is_integer(oldest) <- oldest,
            {:ok, [_first | _rest] = tweets} <-
-             TwitterClient.timeline(state.account.id, max_id: oldest) do
+             @twitter_client_impl.timeline(state.account.id, max_id: oldest) do
         queue = Enum.reduce(tweets, state.queue, fn tweet, queue -> :queue.in(tweet, queue) end)
 
         %{
@@ -175,7 +177,7 @@ defmodule TwitterFeed.Flow.TweetTimelineProducer do
     state =
       with newest when is_integer(newest) <- newest,
            {:ok, [first | _rest] = tweets} <-
-             TwitterClient.timeline(state.account.id, since_id: newest) do
+             @twitter_client_impl.timeline(state.account.id, since_id: newest) do
         queue = Enum.reduce(tweets, state.queue, fn tweet, queue -> :queue.in(tweet, queue) end)
 
         %{

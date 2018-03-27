@@ -22,6 +22,8 @@ defmodule TwitterFeed.Flow.Coordinator do
   @default_consumer_count 10
   @start_stream_interval 1000
 
+  @twitter_client_impl Application.fetch_env!(:twitter_feed, :twitter_client)
+
   def start_link(opts) do
     GenServer.start_link(__MODULE__, :ok, opts)
   end
@@ -126,7 +128,7 @@ defmodule TwitterFeed.Flow.Coordinator do
     end
 
     stream_account_ids = Enum.map(state.stream_for_accounts, fn account -> account.id end)
-    {:ok, stream} = TwitterFeed.TwitterClient.stream(stream_account_ids)
+    {:ok, stream} = @twitter_client_impl.stream(stream_account_ids)
     ref = Process.monitor(stream)
 
     notify_consumers_about_producer(state.consumers, stream, cancel: :temporary)

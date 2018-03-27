@@ -8,7 +8,10 @@ config :twitter_feed, TwitterFeed.Repo,
   hostname: "db",
   pool_size: 8
 
-config :twitter_feed, ecto_repos: [TwitterFeed.Repo]
+config :twitter_feed,
+       ecto_repos: [TwitterFeed.Repo],
+       twitter_client: TwitterFeed.TwitterClient,
+       coordinator: TwitterFeed.Flow.Coordinator
 
 config :twittex,
        consumer_key: System.get_env("TWITTER_CONSUMER_KEY"),
