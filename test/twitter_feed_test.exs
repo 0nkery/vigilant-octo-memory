@@ -1,18 +1,13 @@
-defmodule TwitterFeedTestCoordinator do
+defmodule TwitterFeedTest do
   use ExUnit.Case
 
-  alias TwitterFeed.{Repo, Model.TwitterAccount}
-
-  @twitter_accounts [
-    %{id: 1}
-  ]
-
-  @one_more_twitter_account %TwitterAccount{id: 10}
+  alias TwitterFeed.{Repo, Model.TwitterAccount, Model.Tweet}
+  alias TwitterFeedTest.Fixture
 
   setup_all do
     Repo.insert_all(
       TwitterAccount,
-      @twitter_accounts,
+      Fixture.twitter_accounts(),
       on_conflict: :replace_all,
       conflict_target: :id
     )
@@ -29,7 +24,7 @@ defmodule TwitterFeedTestCoordinator do
     [client: client, coordinator: coordinator]
   end
 
-  test "starts consumers as defined by DB pool_size variable" do
+  test "coordinator starts consumers as defined by DB pool_size variable" do
     consumers_count =
       Application.get_env(:twitter_feed, TwitterFeed.Repo)
       |> Keyword.get(:pool_size)
@@ -38,13 +33,13 @@ defmodule TwitterFeedTestCoordinator do
     assert children.active == consumers_count
   end
 
-  test "starts producer for every account in database" do
+  test "coordinator starts producer for every account in database" do
     children = DynamicSupervisor.count_children(TwitterFeed.ProducerSupervisor)
     assert children.active == Repo.aggregate(TwitterAccount, :count, :id)
   end
 
-  test "updates producers from db", context do
-    Repo.insert!(@one_more_twitter_account)
+  test "coordinator updates producers from db", context do
+    Repo.insert!(Fixture.one_more_twitter_account())
 
     send(context.coordinator, :update)
     Process.sleep(100)
@@ -53,17 +48,21 @@ defmodule TwitterFeedTestCoordinator do
     assert children.active == Repo.aggregate(TwitterAccount, :count, :id)
   end
 
-  test "starts stream after producer is going to stop", context do
+  test "coordinator starts stream after producer is going to stop", context do
     :ok =
       TwitterFeed.Flow.Coordinator.notify_producer_stopping(
         context.coordinator,
-        @one_more_twitter_account
+        Fixture.one_more_twitter_account()
       )
 
     Process.sleep(2000)
 
     [{:stream, user_ids} | nil] = TwitterFeedTest.TwitterClient.get_calls_for(context.coordinator)
 
-    assert Enum.member?(user_ids, @one_more_twitter_account.id)
+    assert Enum.member?(user_ids, Fixture.one_more_twitter_account.id)
+  end
+
+  test "consumers are writing to db" do
+    assert Enum.count(Fixture.tweets()) == Repo.aggregate(Tweet, :count, :id)
   end
 end

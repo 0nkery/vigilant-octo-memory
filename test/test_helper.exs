@@ -38,6 +38,16 @@ defmodule TwitterFeedTest.Fixture do
       }
     ]
   end
+
+  def twitter_accounts() do
+    [
+      %{id: 1}
+    ]
+  end
+
+  def one_more_twitter_account() do
+    %TwitterFeed.Model.TwitterAccount{id: 10}
+  end
 end
 
 defmodule TwitterFeedTest.TwitterClient do
