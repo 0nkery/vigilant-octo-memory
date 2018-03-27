@@ -25,3 +25,5 @@ twitter_feed-*.tar
 # Ignore IDE & editor files
 .idea
 *.iml
+
+*.env

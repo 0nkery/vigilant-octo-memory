@@ -13,6 +13,8 @@ services:
 
   app:
     build: .
+    env_file:
+      - dev.env
     depends_on:
       - db
     working_dir: /app
